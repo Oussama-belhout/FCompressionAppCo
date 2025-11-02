@@ -1,0 +1,27 @@
+[
+  {
+    "name": "uniform",
+    "description": "Uniform distribution over 0..4095",
+    "generatorClass": "com.project.bitpacking.benchmark.UniformBenchmarkGenerator",
+    "dataFile": null,
+    "parameters": ["100000", "4095", "1"],
+    "metadata": {}
+  },
+  {
+    "name": "skewed",
+    "description": "95% small values (0..31), 5% large spikes (0..1_048_575)",
+    "generatorClass": "com.project.bitpacking.benchmark.SkewedBenchmarkGenerator",
+    "dataFile": null,
+    "parameters": ["100000", "0.95", "0", "31", "0", "1048575", "2"],
+    "metadata": {}
+  },
+  {
+    "name": "ascending",
+    "description": "Monotonic increasing sequence",
+    "generatorClass": "com.project.bitpacking.benchmark.AscendingBenchmarkGenerator",
+    "dataFile": null,
+    "parameters": ["100000", "10"],
+    "metadata": {}
+  }
+]
+

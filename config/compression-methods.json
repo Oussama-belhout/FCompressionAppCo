@@ -1,0 +1,21 @@
+[
+  {
+    "name": "CROSS_BOUNDARY",
+    "displayName": "CrossBoundary",
+    "className": "com.project.bitpacking.model.CrossBoundaryBitPacking",
+    "description": "Packs bits contiguously, allowing values to straddle two consecutive 32-bit words"
+  },
+  {
+    "name": "ALIGNED",
+    "displayName": "Aligned",
+    "className": "com.project.bitpacking.model.AlignedBitPacking",
+    "description": "Packs bits without crossing 32-bit word boundaries. Values are padded to stay within a single word"
+  },
+  {
+    "name": "OVERFLOW",
+    "displayName": "Overflow",
+    "className": "com.project.bitpacking.model.OverflowBitPacking",
+    "description": "Uses overflow-aware encoding that prioritizes tight encoding for the bulk of the data while delegating outliers to an auxiliary overflow area"
+  }
+]
+
