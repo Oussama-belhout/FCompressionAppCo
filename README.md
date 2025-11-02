@@ -1,272 +1,153 @@
 # Bit Packing Compression Application
 
-A Java application implementing integer array compression using bit packing techniques, with support for multiple compression strategies, benchmarking, and an interactive REPL interface.
+Lightweight Java app that demonstrates integer-array compression using several bit-packing strategies, a small REPL for interactive experimentation, and a benchmark/evaluation subsystem. This README is updated to match the current project layout and usage.
 
-## Features
+## Highlights
 
-- **Multiple Compression Strategies**:
-  - **CrossBoundary**: Packs bits contiguously across word boundaries for maximum efficiency
-  - **Aligned**: Packs bits without crossing word boundaries (easier to access)
-  - **Overflow**: Uses overflow areas for values requiring more bits than the majority
-
-- **MVC Architecture**: Clean separation of concerns with Model-View-Controller pattern
-
-- **Configurable & Extensible**: 
-  - Compression methods and benchmarks defined via JSON configuration files
-  - Dependency injection through configuration
-  - Easy to add new compression methods or benchmarks
-
-- **Interactive REPL**: Command-line interface for testing and evaluation
-
-- **Comprehensive Benchmarking**: Built-in benchmark suite with timing measurements
-
-- **Logging**: Centralized logging system controlled by a single DEBUG flag
+- Several packing strategies implemented under `src/main/java/com/project/bitpacking/model`
+- Small interactive REPL controller at `src/main/java/com/project/bitpacking/controller/ReplController.java`
+- Config-driven discovery of compression strategies and benchmarks using JSON files in `config/`
+- No third-party dependencies — runs on Java 17+
 
 ## Requirements
 
-- Java 17 or higher
-- No external dependencies (uses standard Java libraries only)
+- Java 17 (or later)
+- Docker (optional, for containerized runs)
 
-## Project Structure
+The project does not include a build system like Maven/Gradle; a simple `build.bat` (Windows) and `build.sh` (POSIX) are provided to compile the sources.
+
+## Repository layout
 
 ```
 FCompressionAppCo/
-├── src/main/java/com/project/bitpacking/
-│   ├── model/          # Core compression algorithms
-│   ├── view/           # Result formatting and display
-│   ├── controller/     # REPL controller and command handling
-│   ├── config/         # Configuration loading and parsing
-│   ├── benchmark/      # Benchmark generators and evaluators
-│   └── util/           # Utility classes (logging, bit operations)
+├── build.bat            # Windows compile helper
+├── build.sh             # POSIX compile helper
+├── Dockerfile
+├── README.md
 ├── config/
-│   ├── compression-methods.json  # Compression method configurations
-│   └── benchmarks.json            # Benchmark configurations
-└── README.md
+│   ├── benchmarks.json
+│   └── compression-methods.json
+└── src/
+    └── main/java/com/project/bitpacking/
+        ├── Main.java
+        ├── benchmark/         # benchmark generators & evaluator
+        ├── config/            # config loaders & simple JSON parser
+        ├── controller/        # REPL controller
+        ├── model/             # compression implementations & interfaces
+        └── util/              # BitUtils, Logger, etc.
 ```
 
-## Quick Start
+## Build & run
 
-### Option 1: Docker (recommended)
+Recommended (Windows / PowerShell):
 
-Build the container image:
+1) Use the provided build script which compiles Java sources into `out/`:
+
+```powershell
+.\build.bat
+```
+
+2) Run the application:
+
+```powershell
+java -cp out com.project.bitpacking.Main
+```
+
+Enable debug logging by adding `--debug` when running the Main class:
+
+```powershell
+java -cp out com.project.bitpacking.Main --debug
+```
+
+Notes:
+- If you prefer an IDE, import the `src/main/java` folder as a source root and run `com.project.bitpacking.Main`.
+- On POSIX systems you can run `./build.sh` instead of `build.bat`.
+
+### Docker
+
+Build the image (from project root):
+
 ```bash
 docker build -t fcompressionapp .
 ```
 
-Run the interactive REPL (press `Ctrl+C` or type `EXIT` to quit):
+Run the REPL inside the container:
+
 ```bash
 docker run -it --rm fcompressionapp
 ```
 
-Pass flags (for example `--debug`) after the image name:
-```bash
-docker run -it --rm fcompressionapp --debug
-```
-
-To experiment with custom configuration files, mount them into the container:
-```bash
-docker run -it --rm \
-  -v "$(pwd)/config:/app/config" \
-  fcompressionapp
-```
-
-### Option 2: Local toolchain
-
-#### Compile
+If you want to override configuration files with your local `config/` directory, mount it into the container. Example (POSIX):
 
 ```bash
-javac -d out -sourcepath src/main/java src/main/java/com/project/bitpacking/**/*.java
+docker run -it --rm -v "$(pwd)/config:/app/config" fcompressionapp
 ```
 
-Or use an IDE like IntelliJ IDEA or Eclipse.
+On Windows PowerShell you can mount with `-v ${PWD}\config:/app/config` (watch for backslashes quoting rules).
 
-#### Run
+## REPL commands (summary)
 
-```bash
-java -cp out com.project.bitpacking.Main
-```
+The interactive controller accepts simple commands. Key commands used for experimentation and benchmarking:
 
-Enable debug logging:
-```bash
-java -cp out com.project.bitpacking.Main --debug
-```
+- ARR <n1,n2,...> — set current integer array to work with
+- COMPRESS <strategy> — compress the current array using a strategy defined in `config/compression-methods.json` (display name or factory name)
+- DECOMPRESS — decompress the last-compressed data
+- GET <index> — retrieve single element from the compressed representation (latency measured)
+- LOAD <benchmark> [params...] — load or generate a benchmark dataset defined in `config/benchmarks.json`
+- EVAL <strategy> — run full evaluation for the loaded benchmark and chosen strategy (compress/decompress/get timings + metrics)
+- HELP — show available commands
+- CLS — clear screen
+- EXIT / QUIT — exit REPL
 
-## REPL Commands
+The program prints simple timing/size/ratio metrics for evaluations.
 
-### Basic Operations
+## Configuration files
 
-- **ARR \<n1,n2,...>**: Declare an array to work with
-  ```
-  >>> ARR 1,3,0,1,4,8,1
-  Array [1, 3, 0, 1, 4, 8, 1]
-  ```
+- `config/compression-methods.json` — maps human-readable names to implementation classes and descriptions. This drives which strategies appear in the REPL and evaluator.
+- `config/benchmarks.json` — defines benchmark entries (generator class, parameters, and optional data files).
 
-- **COMPRESS \<strategy>**: Compress the current array
-  ```
-  >>> COMPRESS CrossBoundary
-  Packed words (2 ints) [...] | Compression time : 0.123 ms
-  ```
+Keep those files in the `config/` folder at the project root. When running inside Docker, mount a host `config/` to `/app/config` to override.
 
-- **DECOMPRESS**: Decompress the last compressed array
-  ```
-  >>> DECOMPRESS
-  Decompressed [1, 3, 0, 1, 4, 8, 1] | Decompression time : 0.045 ms
-  ```
+## Extending the project
 
-- **GET \<index>**: Retrieve a value at a specific index
-  ```
-  >>> GET 3
-  Element 3 = 1 | Retrieval time : 0.001 ms
-  ```
+Adding a new compression strategy:
 
-### Benchmarking
+1. Add a new Java class in `src/main/java/com/project/bitpacking/model` that extends `AbstractBitPacking` or implements the expected `BitPacking` interface.
+2. Add an entry to `config/compression-methods.json` with the display name and fully-qualified class name.
+3. If needed, update `BitPackingFactory` (factory logic is centralized under `model/`) to recognize the new type or rely on reflection if the project loader supports it.
 
-- **LOAD [benchmark] [params]**: Load a benchmark dataset
-  ```
-  >>> LOAD skewed 100000 0.95 0 31 0 1048575 2
-  [||||||    ] - 60%
-  ```
+Adding a new benchmark generator:
 
-- **EVAL \<strategy>**: Evaluate a compression method on the loaded benchmark
-  ```
-  >>> EVAL CrossBoundary
-  Results: (95% small values (0..31), 5% large spikes (0..1_048_575)) | strategy=CROSS_BOUNDARY | compress=0.265 ms | decompress=0.127 ms | get=48.200 ns | ints:100000->62500 | bits/value=20 | ratio=1.60 | latency-threshold=0.010 µs/int
-  ```
-
-### Utility Commands
-
-- **HELP**: Show available commands
-- **CLS**: Clear the screen
-- **EXIT** or **QUIT**: Exit the REPL
-
-## Configuration
-
-### Compression Methods (`config/compression-methods.json`)
-
-Define available compression strategies:
-
-```json
-[
-  {
-    "name": "CROSS_BOUNDARY",
-    "displayName": "CrossBoundary",
-    "className": "com.project.bitpacking.model.CrossBoundaryBitPacking",
-    "description": "Packs bits contiguously across word boundaries"
-  }
-]
-```
-
-### Benchmarks (`config/benchmarks.json`)
-
-Define benchmark datasets:
-
-```json
-[
-  {
-    "name": "uniform",
-    "description": "Uniform distribution over 0..4095",
-    "generatorClass": "com.project.bitpacking.benchmark.UniformBenchmarkGenerator",
-    "dataFile": null,
-    "parameters": ["100000", "4095", "1"],
-    "metadata": {}
-  }
-]
-```
-
-## Extending the Application
-
-### Adding a New Compression Method
-
-1. Create a class implementing `BitPacking` interface (extend `AbstractBitPacking`)
-2. Add entry to `config/compression-methods.json`
-3. Update `BitPackingFactory` to handle the new type (or rely on reflection)
-
-### Adding a New Benchmark Generator
-
-1. Create a class implementing `BenchmarkGenerator`
-2. Add entry to `config/benchmarks.json` with the generator class name
-3. The system will automatically discover and use it via dependency injection
-
-### Design Patterns Used
-
-- **Factory Pattern**: `BitPackingFactory` for creating compression instances
-- **Strategy Pattern**: Different compression strategies implement the same interface
-- **Template Method**: `AbstractBitPacking` provides common functionality
-- **Dependency Injection**: Configuration-driven instantiation of classes
-- **MVC Pattern**: Separation of Model, View, and Controller
-
-## UML Diagrams
-
-Comprehensive UML diagrams are available in the `diagrams/` directory, demonstrating modeling and design pattern skills:
-
-### Available Diagrams
-- **Use Case Diagram**: System use cases and user interactions
-- **Model Layer Class Diagram**: Core compression algorithms and structure
-- **View Layer Class Diagram**: Presentation layer architecture
-- **Controller Layer Class Diagram**: Command processing and orchestration
-- **Benchmark & Config Layer**: Extensibility and configuration management
-- **System Architecture**: Complete integration and component interactions
-
-### Documentation
-See `diagrams/README.md` for detailed documentation of all diagrams, design patterns, and architectural principles.
-
-**Key Highlights**:
-- 6 comprehensive UML diagrams
-- 12+ design pattern implementations
-- Complete layer-by-layer architecture documentation
-- Integration diagrams showing system-wide interactions
-
-## Benchmark Results Format
-
-The `EVAL` command provides comprehensive performance metrics:
-
-- **compress**: Time to compress the dataset (ms)
-- **decompress**: Time to decompress the dataset (ms)
-- **get**: Average time for random access (ns)
-- **ints**: Original -> Compressed integer count
-- **bits/value**: Average bits per value in compressed form
-- **ratio**: Compression ratio
-- **latency-threshold**: Minimum network latency per integer for compression to be beneficial
+1. Implement `BenchmarkGenerator` in `src/main/java/com/project/bitpacking/benchmark`.
+2. Add an entry into `config/benchmarks.json` listing the generator class name and default parameters.
 
 ## Logging
 
-Enable debug logging by:
-1. Setting `Logger.DEBUG = true` in code, or
-2. Running with `--debug` flag: `java -cp out com.project.bitpacking.Main --debug`
+Centralized logging is provided via `src/main/java/com/project/bitpacking/util/Logger.java`. Toggle the debug output at runtime with `--debug` (the Main class recognizes this flag) or by changing `Logger.DEBUG` in code if you prefer a compile-time toggle.
 
-Debug logs help track execution flow and monitor operations.
+## Example session
 
-## Example Session
+Interactive examples (short):
 
 ```
 >>> ARR 1,3,0,1,4,8,1
 Array [1, 3, 0, 1, 4, 8, 1]
 
 >>> COMPRESS CrossBoundary
-Packed words (2 ints) [12345, 67890] | Compression time : 0.123 ms
+Packed words (N ints) [...] | Compression time : 0.12 ms
 
 >>> GET 3
 Element 3 = 1 | Retrieval time : 0.001 ms
 
 >>> DECOMPRESS
-Decompressed [1, 3, 0, 1, 4, 8, 1] | Decompression time : 0.045 ms
-
->>> LOAD skewed 100000 0.95 0 31 0 1048575 2
-[||||||||||] - 100%
-Loaded benchmark: skewed (100000 elements)
-
->>> EVAL CrossBoundary
-Results: (95% small values (0..31), 5% large spikes (0..1_048_575)) | strategy=CROSS_BOUNDARY | compress=0.265 ms | decompress=0.127 ms | get=48.200 ns | ints:100000->62500 | bits/value=20 | ratio=1.60 | latency-threshold=0.010 µs/int
+Decompressed [1, 3, 0, 1, 4, 8, 1] | Decompression time : 0.04 ms
 
 >>> EXIT
 Goodbye!
 ```
 
-## License
+## Notes & troubleshooting
 
-This project is developed as part of a Software Engineering course.
-
-## Authors
-
-Software Engineering Project - Bit Packing Compression Implementation
-
+- This project intentionally keeps no external build system to remain minimal and easy to inspect. Use `build.bat` / `build.sh` or your IDE to compile.
+- If you see ClassNotFound errors, confirm the `out/` directory exists and contains compiled classes, and that you ran the `java -cp out com.project.bitpacking.Main` command from the project root.
+- If you change `config/` while the REPL is running, restart the app to reload configuration.
