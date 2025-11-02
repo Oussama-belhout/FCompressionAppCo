@@ -2,6 +2,8 @@ package com.project.bitpacking.model;
 
 import com.project.bitpacking.util.BitUtils;
 
+import java.util.Arrays;
+
 /**
  * Packs integers while enforcing that every value stays within a single 32-bit word.
  * Excess capacity in a word is left unused.
@@ -34,6 +36,13 @@ public final class AlignedBitPacking extends AbstractBitPacking {
 
         this.bitsPerValue = BitUtils.bitsRequired(max);
         this.elementCount = values.length;
+
+        if (bitsPerValue == 0) {
+            this.valuesPerWord = 0;
+            this.packed = new int[0];
+            return;
+        }
+
         this.valuesPerWord = Math.max(1, 32 / bitsPerValue);
 
         int wordCount = (elementCount + valuesPerWord - 1) / valuesPerWord;
@@ -51,6 +60,10 @@ public final class AlignedBitPacking extends AbstractBitPacking {
     @Override
     public void decompress(int[] destination) {
         ensureReady(destination);
+        if (bitsPerValue == 0) {
+            Arrays.fill(destination, 0, elementCount, 0);
+            return;
+        }
         for (int i = 0; i < elementCount; i++) {
             destination[i] = readAligned(i);
         }
@@ -59,6 +72,9 @@ public final class AlignedBitPacking extends AbstractBitPacking {
     @Override
     public int get(int index) {
         requireIndex(index);
+        if (bitsPerValue == 0) {
+            return 0;
+        }
         return readAligned(index);
     }
 

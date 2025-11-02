@@ -2,6 +2,8 @@ package com.project.bitpacking.model;
 
 import com.project.bitpacking.util.BitUtils;
 
+import java.util.Arrays;
+
 /**
  * Bit packing codec with overflow support. Values that require more than {@code primaryBits} are stored in
  * a dedicated overflow area, while the primary stream keeps a compact representation for the bulk of the data.
@@ -39,6 +41,18 @@ public final class OverflowBitPacking extends AbstractBitPacking {
             }
         }
         int maxBits = BitUtils.bitsRequired(max);
+
+        if (maxBits == 0) {
+            this.elementCount = values.length;
+            this.bitsPerValue = 0;
+            this.primaryBits = 0;
+            this.overflowIndexBits = 0;
+            this.overflowIndexMask = 0;
+            this.useOverflowFlag = false;
+            this.packed = new int[0];
+            this.overflowValues = new int[0];
+            return;
+        }
 
         Selection selection = chooseBestConfiguration(values, maxBits);
         this.primaryBits = selection.primaryBits;
@@ -80,6 +94,10 @@ public final class OverflowBitPacking extends AbstractBitPacking {
     @Override
     public void decompress(int[] destination) {
         ensureReady(destination);
+        if (bitsPerValue == 0) {
+            Arrays.fill(destination, 0, elementCount, 0);
+            return;
+        }
         int bitIndex = 0;
         int payloadMask = primaryBits == 32 ? -1 : (1 << primaryBits) - 1;
         for (int i = 0; i < elementCount; i++) {
@@ -107,6 +125,9 @@ public final class OverflowBitPacking extends AbstractBitPacking {
     @Override
     public int get(int index) {
         requireIndex(index);
+        if (bitsPerValue == 0) {
+            return 0;
+        }
         int payloadMask = primaryBits == 32 ? -1 : (1 << primaryBits) - 1;
         if (!useOverflowFlag) {
             int bitIndex = index * primaryBits;

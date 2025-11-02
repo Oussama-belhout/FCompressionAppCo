@@ -2,6 +2,8 @@ package com.project.bitpacking.model;
 
 import com.project.bitpacking.util.BitUtils;
 
+import java.util.Arrays;
+
 /**
  * Packs integers contiguously, allowing values to span across successive 32-bit words.
  */
@@ -32,6 +34,11 @@ public final class CrossBoundaryBitPacking extends AbstractBitPacking {
         this.bitsPerValue = BitUtils.bitsRequired(max);
         this.elementCount = values.length;
 
+        if (bitsPerValue == 0) {
+            this.packed = new int[0];
+            return;
+        }
+
         long totalBits = (long) bitsPerValue * elementCount;
         int wordCount = (int) ((totalBits + 31) / 32);
         this.packed = new int[wordCount];
@@ -46,6 +53,10 @@ public final class CrossBoundaryBitPacking extends AbstractBitPacking {
     @Override
     public void decompress(int[] destination) {
         ensureReady(destination);
+        if (bitsPerValue == 0) {
+            Arrays.fill(destination, 0, elementCount, 0);
+            return;
+        }
         int bitIndex = 0;
         for (int i = 0; i < elementCount; i++) {
             destination[i] = readValue(bitIndex);
@@ -56,6 +67,9 @@ public final class CrossBoundaryBitPacking extends AbstractBitPacking {
     @Override
     public int get(int index) {
         requireIndex(index);
+        if (bitsPerValue == 0) {
+            return 0;
+        }
         int bitIndex = index * bitsPerValue;
         return readValue(bitIndex);
     }
